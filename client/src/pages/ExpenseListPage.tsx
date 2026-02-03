@@ -165,11 +165,10 @@ function SidebarItem({ icon: Icon, label, active = false, onClick }: SidebarItem
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-        active
-          ? 'bg-primary text-primary-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-card'
-      }`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${active
+        ? 'bg-primary text-primary-foreground'
+        : 'text-muted-foreground hover:text-foreground hover:bg-card'
+        }`}
     >
       <Icon className="w-5 h-5" />
       <span>{label}</span>
@@ -183,9 +182,8 @@ function LoadingSkeleton({ viewMode }: { viewMode: 'grid' | 'list' }) {
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className={`bg-card border border-border rounded-xl overflow-hidden animate-pulse ${
-            viewMode === 'list' ? 'h-20' : 'h-48'
-          }`}
+          className={`bg-card border border-border rounded-xl overflow-hidden animate-pulse ${viewMode === 'list' ? 'h-20' : 'h-48'
+            }`}
         >
           <div className="p-6 space-y-3">
             <div className="h-4 bg-muted/20 rounded w-3/4"></div>
@@ -197,7 +195,7 @@ function LoadingSkeleton({ viewMode }: { viewMode: 'grid' | 'list' }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ onNewExpense }: { onNewExpense: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -212,7 +210,10 @@ function EmptyState() {
       <p className="text-sm text-muted-foreground max-w-sm mb-6">
         Vous n'avez pas encore de notes de frais. Créez votre première dépense pour commencer.
       </p>
-      <button className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2">
+      <button
+        onClick={onNewExpense}
+        className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2"
+      >
         <Plus className="w-5 h-5" />
         <span>Nouvelle dépense</span>
       </button>
@@ -346,27 +347,28 @@ export default function ExpenseListPage() {
                 <div className="flex items-center bg-card border border-border rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 rounded-md transition-colors ${
-                      viewMode === 'grid'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={`px-3 py-2 rounded-md transition-colors ${viewMode === 'grid'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`px-3 py-2 rounded-md transition-colors ${
-                      viewMode === 'list'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={`px-3 py-2 rounded-md transition-colors ${viewMode === 'list'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
                   >
                     <ListIcon className="w-4 h-4" />
                   </button>
                 </div>
 
-                <button className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/expenses/new')}
+                  className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2"
+                >
                   <Plus className="w-5 h-5" />
                   <span className="hidden sm:inline">Nouvelle dépense</span>
                 </button>
@@ -432,7 +434,7 @@ export default function ExpenseListPage() {
                       </motion.div>
                     ))
                   ) : (
-                    <EmptyState />
+                    <EmptyState onNewExpense={() => navigate('/expenses/new')} />
                   )}
                 </motion.div>
               </AnimatePresence>

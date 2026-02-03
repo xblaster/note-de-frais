@@ -40,4 +40,23 @@ export class ExpensesService {
 
         return expenses;
     }
+
+    async create(data: {
+        amount: number;
+        date: string;
+        vendor?: string;
+        userId: string;
+        screenshotUrl?: string;
+    }) {
+        return this.prisma.expense.create({
+            data: {
+                amount: data.amount,
+                date: new Date(data.date),
+                vendor: data.vendor,
+                userId: data.userId,
+                screenshotUrl: data.screenshotUrl,
+                status: 'DRAFT',
+            },
+        });
+    }
 }

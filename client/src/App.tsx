@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import ExpenseListPage from './pages/ExpenseListPage';
+import CreateExpensePage from './pages/CreateExpensePage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -26,6 +27,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ExpenseListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expenses/new"
+          element={
+            <ProtectedRoute>
+              <CreateExpensePage />
             </ProtectedRoute>
           }
         />
