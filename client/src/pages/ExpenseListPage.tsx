@@ -1,23 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Receipt,
   LogOut,
   Search,
-  Filter,
-  LayoutGrid,
-  List as ListIcon,
   TrendingUp,
   Clock,
   CheckCircle2,
   User,
   ChevronRight,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import apiClient from '../api/api-client';
-import { formatCurrency, formatDate } from '../lib/utils';
+import { formatCurrency, formatDate, cn } from '../lib/utils';
+import { useDebounce } from '../hooks/use-debounce';
 
 interface Expense {
   id: string;
@@ -25,6 +25,11 @@ interface Expense {
   date: string;
   vendor: string | null;
   status: string;
+  description?: string;
+  rejectionReason?: string;
+  category?: string;
+  approvedAt?: string;
+  approvedBy?: string;
 }
 
 interface StatCardProps {
@@ -37,14 +42,13 @@ interface StatCardProps {
 
 interface ExpenseCardProps {
   expense: Expense;
-  viewMode: 'grid' | 'list';
+  priority?: boolean;
 }
 
-interface SidebarItemProps {
-  icon: React.ElementType;
+interface FilterChip {
   label: string;
-  active?: boolean;
-  onClick?: () => void;
+  status: string | 'ALL';
+  count: number;
 }
 
 function StatCard({ label, value, icon: Icon, variant, index }: StatCardProps) {
@@ -74,7 +78,9 @@ function StatCard({ label, value, icon: Icon, variant, index }: StatCardProps) {
   );
 }
 
-function ExpenseCard({ expense, viewMode }: ExpenseCardProps) {
+function ExpenseCard({ expense, priority }: ExpenseCardProps) {
+  const navigate = useNavigate();
+
   const getStatusStyles = (status: string): string => {
     switch (status) {
       case 'APPROVED':
@@ -83,8 +89,10 @@ function ExpenseCard({ expense, viewMode }: ExpenseCardProps) {
         return 'bg-error/10 text-error border-error/20';
       case 'SUBMITTED':
         return 'bg-warning/10 text-warning border-warning/20';
-      default:
+      case 'DRAFT':
         return 'bg-muted/10 text-muted-foreground border-muted/20';
+      default:
+        return 'bg-muted/5 text-muted-foreground border-muted/10';
     }
   };
 
@@ -103,87 +111,74 @@ function ExpenseCard({ expense, viewMode }: ExpenseCardProps) {
     }
   };
 
-  if (viewMode === 'list') {
-    return (
-      <div className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-colors group cursor-pointer">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Receipt className="w-6 h-6 text-primary" />
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-foreground truncate">
-              {expense.vendor || 'Note de frais'}
-            </h3>
-            <p className="text-sm text-muted-foreground">{formatDate(expense.date)}</p>
-          </div>
-
-          <div className="text-right flex-shrink-0">
-            <p className="font-bold text-foreground">{formatCurrency(expense.amount)}</p>
-            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border mt-1 ${getStatusStyles(expense.status)}`}>
-              {getStatusLabel(expense.status)}
-            </span>
-          </div>
-
-          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-        </div>
-      </div>
-    );
-  }
+  const handleAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (expense.status === 'DRAFT' || expense.status === 'REJECTED') {
+      navigate(`/expenses/${expense.id}/edit`);
+    } else {
+      navigate(`/expenses/${expense.id}`);
+    }
+  };
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors group cursor-pointer">
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
-            <Receipt className="w-6 h-6 text-primary" />
-          </div>
-          <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${getStatusStyles(expense.status)}`}>
-            {getStatusLabel(expense.status)}
-          </span>
+    <div
+      onClick={() => navigate(expense.status === 'DRAFT' || expense.status === 'REJECTED' ? `/expenses/${expense.id}/edit` : `/expenses/${expense.id}`)}
+      className={cn(
+        "bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-all group cursor-pointer relative overflow-hidden",
+        priority && "border-l-4 border-l-warning bg-warning/5"
+      )}
+    >
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+          <Receipt className="w-6 h-6 text-primary" />
         </div>
 
-        <div className="space-y-2">
-          <h3 className="font-semibold text-foreground truncate">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getStatusStyles(expense.status)}`}>
+              {getStatusLabel(expense.status)}
+            </span>
+            {expense.approvedAt && (
+              <span className="text-[10px] text-muted-foreground"> le {formatDate(expense.approvedAt)}</span>
+            )}
+          </div>
+          <h3 className="font-bold text-foreground truncate text-lg">
             {expense.vendor || 'Note de frais'}
           </h3>
-          <p className="text-sm text-muted-foreground">{formatDate(expense.date)}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" /> {formatDate(expense.date)}
+            {expense.category && <span className="flex items-center gap-1 before:content-['•'] before:mx-1">{expense.category}</span>}
+          </p>
+          {expense.status === 'REJECTED' && expense.rejectionReason && (
+            <p className="text-xs text-error font-medium mt-2 bg-error/10 p-2 rounded-lg border border-error/20 flex items-start gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+              {expense.rejectionReason}
+            </p>
+          )}
         </div>
-      </div>
 
-      <div className="border-t border-border px-6 py-4 bg-card/50">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Montant</span>
-          <span className="font-bold text-foreground">{formatCurrency(expense.amount)}</span>
+        <div className="text-right flex-shrink-0 flex flex-col items-end gap-2">
+          <p className="font-extrabold text-xl text-foreground selection:bg-primary/30">{formatCurrency(expense.amount)}</p>
+          <button
+            onClick={handleAction}
+            className="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 group/btn"
+          >
+            {expense.status === 'DRAFT' ? 'Terminer' : expense.status === 'REJECTED' ? 'Corriger' : 'Voir'}
+            <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function SidebarItem({ icon: Icon, label, active = false, onClick }: SidebarItemProps) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${active
-        ? 'bg-primary text-primary-foreground'
-        : 'text-muted-foreground hover:text-foreground hover:bg-card'
-        }`}
-    >
-      <Icon className="w-5 h-5" />
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function LoadingSkeleton({ viewMode }: { viewMode: 'grid' | 'list' }) {
+function LoadingSkeleton() {
   return (
     <>
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className={`bg-card border border-border rounded-xl overflow-hidden animate-pulse ${viewMode === 'list' ? 'h-20' : 'h-48'
-            }`}
+          className="bg-card border border-border rounded-xl h-20 animate-pulse"
         >
           <div className="p-6 space-y-3">
             <div className="h-4 bg-muted/20 rounded w-3/4"></div>
@@ -224,7 +219,11 @@ function EmptyState({ onNewExpense }: { onNewExpense: () => void }) {
 export default function ExpenseListPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [activeFilter, setActiveFilter] = useState<string | 'ALL'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
+  const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'>('date-desc');
+
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
 
@@ -247,9 +246,54 @@ export default function ExpenseListPage() {
     navigate('/');
   };
 
-  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const pendingCount = expenses.filter((e) => e.status === 'SUBMITTED').length;
-  const approvedCount = expenses.filter((e) => e.status === 'APPROVED').length;
+  const filteredExpenses = useMemo(() => {
+    let result = [...expenses];
+
+    // Apply status filter
+    if (activeFilter !== 'ALL') {
+      result = result.filter(e => e.status === activeFilter);
+    }
+
+    // Apply search
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
+      result = result.filter(e =>
+        e.vendor?.toLowerCase().includes(query) ||
+        e.amount.toString().includes(query) ||
+        e.description?.toLowerCase().includes(query) ||
+        e.category?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply sort
+    result.sort((a, b) => {
+      if (sortOption === 'date-desc') return new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (sortOption === 'date-asc') return new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (sortOption === 'amount-desc') return b.amount - a.amount;
+      if (sortOption === 'amount-asc') return a.amount - b.amount;
+      return 0;
+    });
+
+    return result;
+  }, [expenses, activeFilter, debouncedSearch, sortOption]);
+
+  const actionableExpenses = useMemo(() => {
+    return expenses.filter(e => e.status === 'DRAFT' || e.status === 'REJECTED');
+  }, [expenses]);
+
+  const filterConfigs: FilterChip[] = [
+    { label: 'Toutes', status: 'ALL', count: expenses.length },
+    { label: 'Brouillons', status: 'DRAFT', count: expenses.filter(e => e.status === 'DRAFT').length },
+    { label: 'En attente', status: 'SUBMITTED', count: expenses.filter(e => e.status === 'SUBMITTED').length },
+    { label: 'Approuvées', status: 'APPROVED', count: expenses.filter(e => e.status === 'APPROVED').length },
+    { label: 'Rejetées', status: 'REJECTED', count: expenses.filter(e => e.status === 'REJECTED').length },
+  ];
+
+  const stats = {
+    total: expenses.reduce((sum: number, e: Expense) => sum + e.amount, 0),
+    pending: expenses.filter((e: Expense) => e.status === 'SUBMITTED').length,
+    approved: expenses.filter((e: Expense) => e.status === 'APPROVED').length,
+  };
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -271,53 +315,54 @@ export default function ExpenseListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-card/50 hidden lg:flex flex-col">
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
-              <Receipt className="w-6 h-6 text-primary" />
-            </div>
-            <span className="text-lg font-bold text-foreground">Note de Frais</span>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1">
-          <SidebarItem icon={LayoutGrid} label="Tableau de bord" active />
-          <SidebarItem icon={Receipt} label="Mes dépenses" />
-          <SidebarItem icon={User} label="Profil" />
-        </nav>
-
-        <div className="p-4 border-t border-border">
-          <SidebarItem icon={LogOut} label="Déconnexion" onClick={handleLogout} />
-        </div>
-      </aside>
-
+    <div className="min-h-screen bg-background">
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex flex-col min-w-0">
         {/* Header */}
-        <header className="border-b border-border bg-card/50 px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 max-w-xl">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <header className="border-b border-border bg-card/50 sticky top-0 z-10 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-8">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="w-10 h-10 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-center">
+                <Receipt className="w-6 h-6 text-primary" />
+              </div>
+              <span className="text-xl font-bold text-foreground hidden md:block">Note de Frais</span>
+            </div>
+
+            <div className="flex-1 max-w-2xl">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
                   type="text"
-                  placeholder="Rechercher une dépense..."
-                  className="w-full bg-input border border-border rounded-lg pl-10 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher par fournisseur, montant..."
+                  className="w-full bg-input/50 border border-border rounded-xl pl-10 pr-10 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 hover:bg-muted rounded-full transition-colors"
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-foreground">{userEmail}</p>
-                <p className="text-xs text-muted-foreground">Utilisateur</p>
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-medium text-foreground">{userEmail}</p>
+                  <p className="text-xs text-muted-foreground">Utilisateur</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
               </div>
+              <div className="h-6 w-[1px] bg-border mx-1" />
               <button
                 onClick={handleLogout}
-                className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-error hover:bg-error/10 rounded-lg transition-colors border border-transparent hover:border-error/20"
+                className="p-2 text-muted-foreground hover:text-error hover:bg-error/10 rounded-lg transition-all"
                 title="Déconnexion"
               >
                 <LogOut className="w-5 h-5" />
@@ -327,50 +372,29 @@ export default function ExpenseListPage() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div className="p-6">
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Page Header */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-6"
             >
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Mes Notes de Frais</h1>
-                <p className="text-sm text-muted-foreground">
-                  Gérez vos dépenses professionnelles
+                <h1 className="text-4xl font-bold text-foreground mb-2 selection:bg-primary/30">Mes Notes de Frais</h1>
+                <p className="text-muted-foreground">
+                  Gérez et suivez vos dépenses professionnelles
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="flex items-center bg-card border border-border rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`px-3 py-2 rounded-md transition-colors ${viewMode === 'grid'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-2 rounded-md transition-colors ${viewMode === 'list'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                  >
-                    <ListIcon className="w-4 h-4" />
-                  </button>
-                </div>
-
                 <button
                   onClick={() => navigate('/expenses/new')}
-                  className="bg-primary hover:bg-primary-hover text-primary-foreground font-medium px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2"
+                  className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold px-6 py-2.5 rounded-xl transition-all active:scale-95 shadow-lg shadow-primary/20 inline-flex items-center gap-2 group"
                 >
-                  <Plus className="w-5 h-5" />
-                  <span className="hidden sm:inline">Nouvelle dépense</span>
+                  <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                  <span>Nouvelle dépense</span>
                 </button>
               </div>
             </motion.div>
@@ -379,58 +403,119 @@ export default function ExpenseListPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <StatCard
                 label="Total des dépenses"
-                value={formatCurrency(totalAmount)}
+                value={formatCurrency(stats.total)}
                 icon={TrendingUp}
                 variant="primary"
                 index={0}
               />
               <StatCard
                 label="En attente"
-                value={`${pendingCount} note${pendingCount > 1 ? 's' : ''}`}
+                value={`${stats.pending} note${stats.pending > 1 ? 's' : ''}`}
                 icon={Clock}
                 variant="warning"
                 index={1}
               />
               <StatCard
                 label="Approuvées"
-                value={`${approvedCount} note${approvedCount > 1 ? 's' : ''}`}
+                value={`${stats.approved} note${stats.approved > 1 ? 's' : ''}`}
                 icon={CheckCircle2}
                 variant="success"
                 index={2}
               />
             </div>
 
+            {/* Filtering & Sorting */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-2">
+              <div className="flex flex-wrap gap-2">
+                {filterConfigs.map((filter) => (
+                  <button
+                    key={filter.status}
+                    onClick={() => setActiveFilter(filter.status)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-medium transition-all border",
+                      activeFilter === filter.status
+                        ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                        : "bg-card border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
+                    )}
+                  >
+                    {filter.label}
+                    <span className={cn(
+                      "ml-2 text-xs opacity-60",
+                      activeFilter === filter.status ? "text-primary-foreground" : "text-muted-foreground"
+                    )}>
+                      ({filter.count})
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground hidden sm:block">Trier par :</span>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as any)}
+                  className="bg-card border border-border rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer"
+                >
+                  <option value="date-desc">Plus récent</option>
+                  <option value="date-asc">Plus ancien</option>
+                  <option value="amount-desc">Montant décroissant</option>
+                  <option value="amount-asc">Montant croissant</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Action Required Section */}
+            {actionableExpenses.length > 0 && activeFilter === 'ALL' && !searchQuery && (
+              <section className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="w-8 h-8 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-warning" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Nécessite une action ({actionableExpenses.length})</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {actionableExpenses.map(expense => (
+                    <ExpenseCard key={expense.id} expense={expense} priority />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Expenses Section */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-foreground">
-                  Dépenses récentes
-                  {expenses.length > 0 && (
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">
-                      ({expenses.length})
+              <div className="flex items-center justify-between px-1">
+                <h2 className="text-2xl font-bold text-foreground">
+                  {searchQuery ? 'Résultats de recherche' : 'Toutes les dépenses'}
+                  {filteredExpenses.length > 0 && (
+                    <span className="ml-2 text-lg font-normal text-muted-foreground">
+                      ({filteredExpenses.length})
                     </span>
                   )}
                 </h2>
-                <button className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors">
-                  <Filter className="w-4 h-4" />
-                  <span>Filtrer</span>
-                </button>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-sm text-primary hover:underline font-medium"
+                  >
+                    Effacer la recherche
+                  </button>
+                )}
               </div>
 
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={viewMode}
+                  key={`${activeFilter}-${debouncedSearch}-${sortOption}`}
                   variants={containerVariants}
                   initial="hidden"
                   animate="visible"
-                  className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'space-y-3'}
+                  className="space-y-3"
                 >
                   {loading ? (
-                    <LoadingSkeleton viewMode={viewMode} />
-                  ) : expenses.length > 0 ? (
-                    expenses.map((expense) => (
+                    <LoadingSkeleton />
+                  ) : filteredExpenses.length > 0 ? (
+                    filteredExpenses.map((expense) => (
                       <motion.div key={expense.id} variants={itemVariants}>
-                        <ExpenseCard expense={expense} viewMode={viewMode} />
+                        <ExpenseCard expense={expense} />
                       </motion.div>
                     ))
                   ) : (
