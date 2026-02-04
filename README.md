@@ -61,7 +61,18 @@ pnpm prisma migrate dev
 pnpm run start:dev
 ```
 
-### 3. Configuration du Frontend
+### 3. Configuration IA / OCR (Ollama)
+
+Ce projet utilise [Ollama](https://ollama.com/) pour l'extraction de données via IA.
+
+1. Installez Ollama depuis [ollama.com](https://ollama.com).
+2. Tirez le modèle requis :
+```bash
+ollama pull qwen2.5vl:3b
+```
+3. Assurez-vous que le service Ollama tourne en arrière-plan (port 11434 par défaut).
+
+### 4. Configuration du Frontend
 
 ```bash
 cd client
