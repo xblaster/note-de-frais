@@ -7,6 +7,8 @@ import {
   UseInterceptors,
   UploadedFile,
   Body,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -16,7 +18,7 @@ import { extname } from 'path';
 
 @Controller('expenses')
 export class ExpensesController {
-  constructor(private readonly expensesService: ExpensesService) {}
+  constructor(private readonly expensesService: ExpensesService) { }
 
   @Get()
   async findAll(@Query('userId') userId: string) {
@@ -65,5 +67,13 @@ export class ExpensesController {
       userId: body.userId,
       screenshotUrl,
     });
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: string, @Query('userId') userId: string) {
+    if (!userId) {
+      throw new UnauthorizedException('User ID is required');
+    }
+    return this.expensesService.remove(id, userId);
   }
 }

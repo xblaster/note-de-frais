@@ -18,10 +18,15 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 }
 
 export default function App() {
+  const userId = localStorage.getItem('userId');
+
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={userId ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        />
         <Route
           path="/dashboard"
           element={

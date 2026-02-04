@@ -3,62 +3,31 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ExpensesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async findAll(userId: string) {
-    // If user has no expenses, create some dummy ones for demonstration
-    const expenses = await this.prisma.expense.findMany({
+    return this.prisma.expense.findMany({
       where: { userId },
     });
+  }
 
-    if (expenses.length === 0) {
-      await this.prisma.expense.createMany({
-        data: [
-          {
-            amount: 42.5,
-            vendor: 'Starbucks',
-            date: new Date(),
-            userId,
-            status: 'DRAFT',
-            description: 'Café équipe',
-            category: 'Repas',
-          },
-          {
-            amount: 15.0,
-            vendor: 'Uber',
-            date: new Date(),
-            userId,
-            status: 'REJECTED',
-            rejectionReason: 'Justificatif illisible',
-            description: 'Trajet bureau-client',
-            category: 'Transport',
-          },
-          {
-            amount: 120.99,
-            vendor: 'Amazon',
-            date: new Date(),
-            userId,
-            status: 'SUBMITTED',
-            description: 'Souris ergonomique',
-            category: 'Fournitures',
-          },
-          {
-            amount: 550.0,
-            vendor: 'Hotel Marriott',
-            date: new Date(Date.now() - 86400000 * 2),
-            userId,
-            status: 'APPROVED',
-            approvedAt: new Date(Date.now() - 86400000),
-            approvedBy: 'manager@example.com',
-            description: "Voyage d'affaires Lyon",
-            category: 'Hébergement',
-          },
-        ],
-      });
-      return this.prisma.expense.findMany({ where: { userId } });
+  async remove(id: string, userId: string) {
+    const expense = await this.prisma.expense.findUnique({
+      where: { id },
+    });
+
+    if (!expense || expense.userId !== userId) {
+      throw new Error('Expense not found or unauthorized');
     }
 
-    return expenses;
+    // Only allow deletion for DRAFT or REJECTED status
+    if (expense.status !== 'DRAFT' && expense.status !== 'REJECTED') {
+      throw new Error('Only draft or rejected expenses can be deleted');
+    }
+
+    return this.prisma.expense.delete({
+      where: { id },
+    });
   }
 
   async create(data: {

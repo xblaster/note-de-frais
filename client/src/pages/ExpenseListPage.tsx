@@ -12,6 +12,7 @@ import {
   ChevronRight,
   AlertTriangle,
   X,
+  Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -43,6 +44,7 @@ interface StatCardProps {
 interface ExpenseCardProps {
   expense: Expense;
   priority?: boolean;
+  onDelete: (id: string) => void;
 }
 
 interface FilterChip {
@@ -78,7 +80,7 @@ function StatCard({ label, value, icon: Icon, variant, index }: StatCardProps) {
   );
 }
 
-function ExpenseCard({ expense, priority }: ExpenseCardProps) {
+function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
   const navigate = useNavigate();
 
   const getStatusStyles = (status: string): string => {
@@ -117,6 +119,13 @@ function ExpenseCard({ expense, priority }: ExpenseCardProps) {
       navigate(`/expenses/${expense.id}/edit`);
     } else {
       navigate(`/expenses/${expense.id}`);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette dépense ?')) {
+      onDelete(expense.id);
     }
   };
 
@@ -166,6 +175,16 @@ function ExpenseCard({ expense, priority }: ExpenseCardProps) {
             {expense.status === 'DRAFT' ? 'Terminer' : expense.status === 'REJECTED' ? 'Corriger' : 'Voir'}
             <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
           </button>
+          {(expense.status === 'DRAFT' || expense.status === 'REJECTED') && (
+            <button
+              onClick={handleDelete}
+              className="text-sm font-semibold text-error hover:text-error/80 flex items-center gap-1 group/del mt-1"
+              title="Supprimer"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Supprimer</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -240,6 +259,16 @@ export default function ExpenseListPage() {
     };
     fetchExpenses();
   }, []);
+
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await apiClient.delete(`/expenses/${id}`);
+      setExpenses(prev => prev.filter(e => e.id !== id));
+    } catch (error) {
+      console.error('Failed to delete expense', error);
+      alert('Une erreur est survenue lors de la suppression.');
+    }
+  };
 
   const handleLogout = (): void => {
     localStorage.clear();
@@ -475,7 +504,7 @@ export default function ExpenseListPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {actionableExpenses.map(expense => (
-                    <ExpenseCard key={expense.id} expense={expense} priority />
+                    <ExpenseCard key={expense.id} expense={expense} priority onDelete={handleDeleteExpense} />
                   ))}
                 </div>
               </section>
@@ -515,7 +544,7 @@ export default function ExpenseListPage() {
                   ) : filteredExpenses.length > 0 ? (
                     filteredExpenses.map((expense) => (
                       <motion.div key={expense.id} variants={itemVariants}>
-                        <ExpenseCard expense={expense} />
+                        <ExpenseCard expense={expense} onDelete={handleDeleteExpense} />
                       </motion.div>
                     ))
                   ) : (
