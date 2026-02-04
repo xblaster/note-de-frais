@@ -91,6 +91,8 @@ function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
         return 'bg-error/10 text-error border-error/20';
       case 'SUBMITTED':
         return 'bg-warning/10 text-warning border-warning/20';
+      case 'REVISION_REQUESTED':
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
       case 'DRAFT':
         return 'bg-muted/10 text-muted-foreground border-muted/20';
       default:
@@ -106,6 +108,8 @@ function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
         return 'Rejeté';
       case 'SUBMITTED':
         return 'En attente';
+      case 'REVISION_REQUESTED':
+        return 'À réviser';
       case 'DRAFT':
         return 'Brouillon';
       default:
@@ -115,8 +119,11 @@ function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
 
   const handleAction = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (expense.status === 'DRAFT' || expense.status === 'REJECTED') {
-      navigate(`/expenses/${expense.id}/edit`);
+    if (expense.status === 'DRAFT' || expense.status === 'REVISION_REQUESTED') {
+      navigate(`/expenses/edit/${expense.id}`);
+    } else if (expense.status === 'REJECTED') {
+      // For REJECTED, maybe we also want to allow editing or just view
+      navigate(`/expenses/edit/${expense.id}`);
     } else {
       navigate(`/expenses/${expense.id}`);
     }
@@ -131,7 +138,7 @@ function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
 
   return (
     <div
-      onClick={() => navigate(expense.status === 'DRAFT' || expense.status === 'REJECTED' ? `/expenses/${expense.id}/edit` : `/expenses/${expense.id}`)}
+      onClick={() => navigate((expense.status === 'DRAFT' || expense.status === 'REVISION_REQUESTED' || expense.status === 'REJECTED') ? `/expenses/edit/${expense.id}` : `/expenses/${expense.id}`)}
       className={cn(
         "bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-all group cursor-pointer relative overflow-hidden",
         priority && "border-l-4 border-l-warning bg-warning/5"
@@ -158,8 +165,11 @@ function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
             <Clock className="w-3 h-3" /> {formatDate(expense.date)}
             {expense.category && <span className="flex items-center gap-1 before:content-['•'] before:mx-1">{expense.category}</span>}
           </p>
-          {expense.status === 'REJECTED' && expense.rejectionReason && (
-            <p className="text-xs text-error font-medium mt-2 bg-error/10 p-2 rounded-lg border border-error/20 flex items-start gap-1.5">
+          {(expense.status === 'REJECTED' || expense.status === 'REVISION_REQUESTED') && expense.rejectionReason && (
+            <p className={cn(
+              "text-xs font-medium mt-2 p-2 rounded-lg border flex items-start gap-1.5",
+              expense.status === 'REJECTED' ? "bg-error/10 border-error/20 text-error" : "bg-amber-500/10 border-amber-500/20 text-amber-500"
+            )}>
               <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
               {expense.rejectionReason}
             </p>
@@ -172,7 +182,7 @@ function ExpenseCard({ expense, priority, onDelete }: ExpenseCardProps) {
             onClick={handleAction}
             className="text-sm font-semibold text-primary hover:text-primary-hover flex items-center gap-1 group/btn"
           >
-            {expense.status === 'DRAFT' ? 'Terminer' : expense.status === 'REJECTED' ? 'Corriger' : 'Voir'}
+            {expense.status === 'DRAFT' ? 'Terminer' : (expense.status === 'REJECTED' || expense.status === 'REVISION_REQUESTED') ? 'Corriger' : 'Voir'}
             <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
           </button>
           {(expense.status === 'DRAFT' || expense.status === 'REJECTED') && (
@@ -307,12 +317,13 @@ export default function ExpenseListPage() {
   }, [expenses, activeFilter, debouncedSearch, sortOption]);
 
   const actionableExpenses = useMemo(() => {
-    return expenses.filter(e => e.status === 'DRAFT' || e.status === 'REJECTED');
+    return expenses.filter(e => e.status === 'DRAFT' || e.status === 'REJECTED' || e.status === 'REVISION_REQUESTED');
   }, [expenses]);
 
   const filterConfigs: FilterChip[] = [
     { label: 'Toutes', status: 'ALL', count: expenses.length },
     { label: 'Brouillons', status: 'DRAFT', count: expenses.filter(e => e.status === 'DRAFT').length },
+    { label: 'À réviser', status: 'REVISION_REQUESTED', count: expenses.filter(e => e.status === 'REVISION_REQUESTED').length },
     { label: 'En attente', status: 'SUBMITTED', count: expenses.filter(e => e.status === 'SUBMITTED').length },
     { label: 'Approuvées', status: 'APPROVED', count: expenses.filter(e => e.status === 'APPROVED').length },
     { label: 'Rejetées', status: 'REJECTED', count: expenses.filter(e => e.status === 'REJECTED').length },

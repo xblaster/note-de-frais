@@ -20,9 +20,13 @@ export class ExpensesService {
       throw new Error('Expense not found or unauthorized');
     }
 
-    // Only allow deletion for DRAFT or REJECTED status
-    if (expense.status !== 'DRAFT' && expense.status !== 'REJECTED') {
-      throw new Error('Only draft or rejected expenses can be deleted');
+    // Only allow deletion for DRAFT, REJECTED or REVISION_REQUESTED status
+    if (
+      expense.status !== 'DRAFT' &&
+      expense.status !== 'REJECTED' &&
+      expense.status !== 'REVISION_REQUESTED'
+    ) {
+      throw new Error('Only draft, rejected or revision requested expenses can be deleted');
     }
 
     return this.prisma.expense.delete({
@@ -45,6 +49,81 @@ export class ExpensesService {
         userId: data.userId,
         screenshotUrl: data.screenshotUrl,
         status: 'DRAFT',
+      },
+    });
+  }
+
+  async update(
+    id: string,
+    userId: string,
+    data: {
+      amount?: number;
+      date?: string;
+      vendor?: string;
+      description?: string;
+      category?: string;
+    },
+  ) {
+    const expense = await this.prisma.expense.findUnique({
+      where: { id },
+    });
+
+    if (!expense || expense.userId !== userId) {
+      throw new Error('Expense not found or unauthorized');
+    }
+
+    if (expense.status !== 'DRAFT' && expense.status !== 'REVISION_REQUESTED') {
+      throw new Error('Only expenses in DRAFT or REVISION_REQUESTED status can be updated');
+    }
+
+    return this.prisma.expense.update({
+      where: { id },
+      data: {
+        ...data,
+        date: data.date ? new Date(data.date) : undefined,
+      },
+    });
+  }
+
+  async requestRevision(id: string, reason: string) {
+    const expense = await this.prisma.expense.findUnique({
+      where: { id },
+    });
+
+    if (!expense) {
+      throw new Error('Expense not found');
+    }
+
+    if (expense.status !== 'SUBMITTED') {
+      throw new Error('Only submitted expenses can be sent for revision');
+    }
+
+    return this.prisma.expense.update({
+      where: { id },
+      data: {
+        status: 'REVISION_REQUESTED',
+        rejectionReason: reason,
+      },
+    });
+  }
+
+  async submit(id: string, userId: string) {
+    const expense = await this.prisma.expense.findUnique({
+      where: { id },
+    });
+
+    if (!expense || expense.userId !== userId) {
+      throw new Error('Expense not found or unauthorized');
+    }
+
+    if (expense.status !== 'DRAFT' && expense.status !== 'REVISION_REQUESTED') {
+      throw new Error('Only draft or revision requested expenses can be submitted');
+    }
+
+    return this.prisma.expense.update({
+      where: { id },
+      data: {
+        status: 'SUBMITTED',
       },
     });
   }

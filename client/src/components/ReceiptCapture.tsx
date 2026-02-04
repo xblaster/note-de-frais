@@ -1,13 +1,21 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, Upload, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ReceiptCaptureProps {
     onCapture: (file: File | null) => void;
+    initialPreview?: string;
 }
 
-export default function ReceiptCapture({ onCapture }: ReceiptCaptureProps) {
-    const [preview, setPreview] = useState<string | null>(null);
+export default function ReceiptCapture({ onCapture, initialPreview }: ReceiptCaptureProps) {
+    const [preview, setPreview] = useState<string | null>(initialPreview || null);
+
+    useEffect(() => {
+        if (initialPreview) {
+            setPreview(initialPreview);
+        }
+    }, [initialPreview]);
+
     const [isCameraActive, setIsCameraActive] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);

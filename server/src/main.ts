@@ -10,7 +10,7 @@ async function bootstrap() {
     origin: 'http://localhost:5173',
   });
 
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
 

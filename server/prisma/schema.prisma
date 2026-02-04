@@ -15,6 +15,7 @@ enum Role {
 enum ExpenseStatus {
   DRAFT
   SUBMITTED
+  REVISION_REQUESTED
   APPROVED
   REJECTED
 }

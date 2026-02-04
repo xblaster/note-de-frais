@@ -12,7 +12,7 @@ interface Expense {
 @Injectable()
 export class OllamaService {
     private readonly logger = new Logger(OllamaService.name);
-    private readonly model = 'qwen2.5vl:3b'; // User requested "qwen3-vl" (adjusted to valid model name)
+    private readonly model = 'qwen3-vl:4b'; // User requested "qwen3-vl" (adjusted to valid model name)
 
     async analyzeReceipt(filePath: string): Promise<Expense> {
         try {

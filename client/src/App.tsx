@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import ExpenseListPage from './pages/ExpenseListPage';
 import CreateExpensePage from './pages/CreateExpensePage';
+import ExpenseEditPage from './pages/ExpenseEditPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -40,6 +41,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <CreateExpensePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/expenses/edit/:id"
+          element={
+            <ProtectedRoute>
+              <ExpenseEditPage />
             </ProtectedRoute>
           }
         />
