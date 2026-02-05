@@ -63,6 +63,34 @@ describe('OllamaService', () => {
       });
     });
 
+    it('should normalize different date formats', async () => {
+      const filePath = 'test.jpg';
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
+
+      const testCases = [
+        { input: '05/02/2026', expected: '2026-02-05' },
+        { input: '05.02.2026', expected: '2026-02-05' },
+        { input: '2026/02/05', expected: '2026-02-05' },
+        { input: '05-02-26', expected: '2026-02-05' },
+        { input: '2026-02-05', expected: '2026-02-05' },
+      ];
+
+      for (const testCase of testCases) {
+        (ollama.chat as jest.Mock).mockResolvedValueOnce({
+          message: {
+            content: JSON.stringify({
+              vendor: 'Test',
+              amount: 10,
+              date: testCase.input,
+            }),
+          },
+        });
+
+        const result = await service.analyzeReceipt(filePath);
+        expect(result.date).toBe(testCase.expected);
+      }
+    });
+
     it('should throw error if ollama.chat fails', async () => {
       (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
       (ollama.chat as jest.Mock).mockRejectedValue(new Error('Ollama error'));

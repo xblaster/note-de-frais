@@ -36,7 +36,7 @@ export class OllamaService {
                     },
                     date: {
                         type: ['string', 'null'],
-                        description: 'The date of the transaction (in YYYY-MM-DD format).',
+                        description: 'The date of the transaction (e.g., DD/MM/YYYY, MM/DD/YY, YYYY-MM-DD, etc.).',
                     },
                 },
                 required: ['vendor', 'amount', 'date'],
@@ -67,7 +67,7 @@ export class OllamaService {
             return {
                 vendor: parsedData.vendor,
                 amount: parsedData.amount,
-                date: parsedData.date,
+                date: this.normalizeDate(parsedData.date),
             };
 
         } catch (error) {
@@ -82,6 +82,47 @@ export class OllamaService {
             this.logger.error(`Full error object: ${JSON.stringify(error, null, 2)}`);
             throw error;
         }
+    }
+
+    /**
+     * Attempts to normalize inconsistent date formats into YYYY-MM-DD.
+     */
+    private normalizeDate(dateStr: string | null): string | null {
+        if (!dateStr) return null;
+
+        // Remove any non-numeric, non-separator characters
+        const cleanDate = dateStr.trim();
+
+        // 1. Try ISO format (YYYY-MM-DD)
+        const isoMatch = cleanDate.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+        if (isoMatch) {
+            return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
+        }
+
+        // 2. Try European format (DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY)
+        const euroMatch = cleanDate.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+        if (euroMatch) {
+            return `${euroMatch[3]}-${euroMatch[2].padStart(2, '0')}-${euroMatch[1].padStart(2, '0')}`;
+        }
+
+        // 3. Try European short year (DD/MM/YY) - assume 20xx
+        const euroShortMatch = cleanDate.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2})$/);
+        if (euroShortMatch) {
+            const year = parseInt(euroShortMatch[3]) > 70 ? `19${euroShortMatch[3]}` : `20${euroShortMatch[3]}`;
+            return `${year}-${euroShortMatch[2].padStart(2, '0')}-${euroShortMatch[1].padStart(2, '0')}`;
+        }
+
+        // 4. Try JS Date parsing as fallback
+        try {
+            const d = new Date(cleanDate);
+            if (!isNaN(d.getTime())) {
+                return d.toISOString().split('T')[0];
+            }
+        } catch (e) {
+            // Fallback to original
+        }
+
+        return dateStr;
     }
 
     async isHealthy(): Promise<boolean> {
