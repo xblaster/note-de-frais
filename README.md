@@ -73,13 +73,28 @@ pnpm test:watch        # Mode surveillance
 
 ## 🏗️ Installation & Lancement
 
-### Prérequis
+### 1. Prérequis
 
 - [Node.js](https://nodejs.org/) (v18+)
 - [pnpm](https://pnpm.io/)
 - [Docker](https://www.docker.com/) (pour la base de données)
 
-### 1. Configuration de la Base de Données
+### 2. Démarrage Rapide (Windows)
+
+Si vous êtes sur Windows, utilisez les scripts PowerShell pour automatiser l'installation et le lancement :
+
+```powershell
+# Installation et configuration automatique
+./scripts/powershell/setup.ps1
+
+# Lancement du client et du serveur en parallèle
+./scripts/powershell/start.ps1
+
+# Lancement de tous les tests unitaires
+./scripts/powershell/test.ps1
+```
+
+### 3. Installation Manuelle (Autres systèmes)
 
 Lancez l'instance PostgreSQL via Docker :
 

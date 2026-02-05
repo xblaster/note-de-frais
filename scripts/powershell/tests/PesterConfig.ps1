@@ -1,0 +1,1 @@
+# Pester Configuration for PowerShell Automation scripts

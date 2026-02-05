@@ -14,6 +14,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Database**: PostgreSQL via Docker
 - **Testing**: Jest (server), Vitest + React Testing Library (client)
 
+## Project lifecycle commands (Windows - PowerShell)
+
+Use these scripts for a standardized experience on Windows:
+- Setup: `./scripts/powershell/setup.ps1`
+- Start: `./scripts/powershell/start.ps1`
+- Test: `./scripts/powershell/test.ps1`
+- Build: `./scripts/powershell/build.ps1`
+
 ## Development Commands
 
 ### Prerequisites

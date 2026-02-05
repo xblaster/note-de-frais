@@ -1,4 +1,4 @@
-# Note de Frais - Project Configuration
+﻿# Note de Frais - Project Configuration
 
 ## Development Environment
 - **Operating System**: Windows
@@ -42,7 +42,15 @@ Ce projet est une application moderne de gestion de notes de frais permettant au
 
 ## AI Instructions
 Lorsque tu travailles sur ce projet :
+- **Mandat Windows/PowerShell**: Sur Windows, utilise **UNIQUEMENT** PowerShell pour toutes les commandes et scripts. Priorise les scripts de `scripts/powershell/` pour les tâches courantes.
 - Priorise des designs **premium** et **dynamiques** (Shadcn/UI, micro-animations).
 - Utilise toujours `pnpm`.
 - Assure la cohérence des types entre le schéma Prisma et le frontend.
 - Pour l'OCR, propose des intégrations robustes (Tesseract.js ou services Cloud).
+
+<!-- AGENT_CONTEXT_START -->
+## Feature Context: 001-standardize-powershell-windows
+- **Languages**: PowerShell 5.1 (Windows default) and PowerShell 7+ (Core)
+- **Frameworks**: Node.js, pnpm, Git
+- **Project Structure**: Standardized PowerShell scripts in `scripts/powershell/`
+<!-- AGENT_CONTEXT_END -->

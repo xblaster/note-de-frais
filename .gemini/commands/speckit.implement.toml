@@ -57,6 +57,10 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **IF EXISTS**: Read quickstart.md for integration scenarios
 
 4. **Project Setup Verification**:
+   - **Windows/PowerShell Mandate**:
+     - On Windows systems, **PowerShell** is the mandatory shell for all implementation tasks.
+     - AI agents MUST use PowerShell syntax and native cmdlets.
+     - Project automation in `scripts/powershell/` MUST be used for setup, testing, and starting.
    - **REQUIRED**: Create/verify ignore files based on actual project setup:
 
    **Detection & Creation Logic**:

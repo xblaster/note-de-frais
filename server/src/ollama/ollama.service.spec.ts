@@ -1,10 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { OllamaService } from './ollama.service';
+import ollama from 'ollama';
 import * as fs from 'fs';
 
-// Note: These tests document the expected behavior of OllamaService
-// In a real environment, mocking the Ollama library requires additional setup
-// since it's an external Node.js module with HTTP clients
+jest.mock('ollama', () => ({
+  chat: jest.fn(),
+  list: jest.fn(),
+}));
+
+jest.mock('fs', () => ({
+  readFileSync: jest.fn(),
+}));
 
 describe('OllamaService', () => {
   let service: OllamaService;
@@ -15,66 +21,85 @@ describe('OllamaService', () => {
     }).compile();
 
     service = module.get<OllamaService>(OllamaService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  describe('Service interface', () => {
-    it('should have analyzeReceipt method', () => {
-      expect(typeof service.analyzeReceipt).toBe('function');
-    });
+  describe('analyzeReceipt', () => {
+    it('should successfully analyze a receipt', async () => {
+      const filePath = 'test.jpg';
+      const mockFileContent = Buffer.from('mock image data');
+      (fs.readFileSync as jest.Mock).mockReturnValue(mockFileContent);
 
-    it('should have isHealthy method', () => {
-      expect(typeof service.isHealthy).toBe('function');
-    });
-
-    it('analyzeReceipt should accept file path parameter', async () => {
-      // Document expected signature: async analyzeReceipt(filePath: string): Promise<Expense>
-      expect(service.analyzeReceipt.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('isHealthy should return a Promise', () => {
-      const result = service.isHealthy();
-      expect(result).toBeInstanceOf(Promise);
-    });
-  });
-
-  describe('Response format documentation', () => {
-    it('should return object with vendor, amount, date properties', () => {
-      // This test documents the expected response structure
-      // In actual usage, the response from Ollama would have:
-      // { vendor: string | null, amount: number | null, date: string | null }
-      const expectedFormat = {
-        vendor: null,
-        amount: null,
-        date: null,
+      const mockResponse = {
+        message: {
+          content: JSON.stringify({
+            vendor: 'Test Shop',
+            amount: 123.45,
+            date: '2024-02-05',
+          }),
+        },
       };
-      expect(expectedFormat).toHaveProperty('vendor');
-      expect(expectedFormat).toHaveProperty('amount');
-      expect(expectedFormat).toHaveProperty('date');
+      (ollama.chat as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await service.analyzeReceipt(filePath);
+
+      expect(fs.readFileSync).toHaveBeenCalledWith(filePath);
+      expect(ollama.chat).toHaveBeenCalledWith(expect.objectContaining({
+        model: expect.any(String),
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            images: [mockFileContent.toString('base64')],
+          }),
+        ]),
+      }));
+      expect(result).toEqual({
+        vendor: 'Test Shop',
+        amount: 123.45,
+        date: '2024-02-05',
+      });
     });
+
+    it('should throw error if ollama.chat fails', async () => {
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
+      (ollama.chat as jest.Mock).mockRejectedValue(new Error('Ollama error'));
+
+      await expect(service.analyzeReceipt('test.jpg')).rejects.toThrow('Ollama error');
+    });
+
+    it('should throw error with cause if ollama.chat fails with cause', async () => {
+        (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
+        const error = new Error('Ollama error') as any;
+        error.cause = { details: 'timeout' };
+        (ollama.chat as jest.Mock).mockRejectedValue(error);
+  
+        await expect(service.analyzeReceipt('test.jpg')).rejects.toThrow('Ollama error');
+      });
+
+    it('should throw error if JSON parsing fails', async () => {
+        (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
+        (ollama.chat as jest.Mock).mockResolvedValue({
+            message: { content: 'invalid json' }
+        });
+  
+        await expect(service.analyzeReceipt('test.jpg')).rejects.toThrow();
+      });
   });
 
-  describe('Error handling documentation', () => {
-    it('should handle file read errors', () => {
-      // Documents that file read errors should be caught and propagated
-      // Expected behavior: if file doesn't exist, analyzeReceipt throws error
-      const nonexistentPath = '/this/path/does/not/exist.jpg';
-      expect(nonexistentPath).toBeDefined();
+  describe('isHealthy', () => {
+    it('should return true if ollama.list succeeds', async () => {
+      (ollama.list as jest.Mock).mockResolvedValue({});
+      const result = await service.isHealthy();
+      expect(result).toBe(true);
     });
 
-    it('should handle Ollama service errors', () => {
-      // Documents expected error handling for Ollama timeouts/unavailability
-      // Expected behavior: errors from Ollama are caught and re-thrown with logging
-      expect(service).toBeDefined();
-    });
-
-    it('should handle invalid JSON responses', () => {
-      // Documents that malformed JSON responses should throw parse errors
-      // Expected behavior: JSON.parse failure is caught in try-catch
-      expect(() => JSON.parse('invalid {json')).toThrow();
+    it('should return false if ollama.list fails', async () => {
+      (ollama.list as jest.Mock).mockRejectedValue(new Error('Down'));
+      const result = await service.isHealthy();
+      expect(result).toBe(false);
     });
   });
 });
