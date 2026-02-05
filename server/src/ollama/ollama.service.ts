@@ -63,11 +63,11 @@ export class OllamaService {
 
             // 3. Parse the JSON response
             // Since we requested structured output, we can trust Ollama to return valid JSON matching the schema.
-            const parsedData = JSON.parse(response.message.content) as Expense;
+            const parsedData = JSON.parse(response.message.content) as any;
 
             return {
                 vendor: parsedData.vendor,
-                amount: parsedData.amount,
+                amount: typeof parsedData.amount === 'string' ? parseFloat(parsedData.amount) : parsedData.amount,
                 date: this.normalizeDate(parsedData.date),
             };
 

@@ -91,6 +91,25 @@ describe('OllamaService', () => {
       }
     });
 
+    it('should normalize string amount to number', async () => {
+      const filePath = 'test.jpg';
+      (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
+
+      (ollama.chat as jest.Mock).mockResolvedValue({
+        message: {
+          content: JSON.stringify({
+            vendor: 'Test',
+            amount: '123.45', // String instead of number
+            date: '2026-02-05',
+          }),
+        },
+      });
+
+      const result = await service.analyzeReceipt(filePath);
+      expect(typeof result.amount).toBe('number');
+      expect(result.amount).toBe(123.45);
+    });
+
     it('should throw error if ollama.chat fails', async () => {
       (fs.readFileSync as jest.Mock).mockReturnValue(Buffer.from('data'));
       (ollama.chat as jest.Mock).mockRejectedValue(new Error('Ollama error'));
