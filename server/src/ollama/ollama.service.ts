@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import ollama from 'ollama';
 import { readFileSync } from 'fs';
+import { parse, format, isValid } from 'date-fns';
 
 // 1. Define a TypeScript interface for type safety
 interface Expense {
@@ -85,41 +86,60 @@ export class OllamaService {
     }
 
     /**
-     * Attempts to normalize inconsistent date formats into YYYY-MM-DD.
+     * Attempts to normalize inconsistent date formats into YYYY-MM-DD using date-fns.
      */
     private normalizeDate(dateStr: string | null): string | null {
         if (!dateStr) return null;
 
-        // Remove any non-numeric, non-separator characters
         const cleanDate = dateStr.trim();
+        const referenceDate = new Date();
 
-        // 1. Try ISO format (YYYY-MM-DD)
-        const isoMatch = cleanDate.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
-        if (isoMatch) {
-            return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
+        // Common formats to try, ordered by likelihood
+        const formatsToTry = [
+            'yyyy-MM-dd',
+            'dd/MM/yyyy',
+            'dd.MM.yyyy',
+            'dd-MM-yyyy',
+            'yyyy/MM/dd',
+            'MM/dd/yyyy',
+            'dd/MM/yy',
+            'dd.MM.yy',
+            'dd-MM-yy',
+            'yy-MM-dd',
+        ];
+
+        for (const fmt of formatsToTry) {
+            try {
+                const parsedDate = parse(cleanDate, fmt, referenceDate);
+                // Check if the parsed date is valid and the format matches the length approximately
+                // date-fns parse can be very aggressive (e.g. parsing '05-02-26' as year 0005 with 'dd-MM-yyyy')
+                if (isValid(parsedDate) && parsedDate.getFullYear() > 1000) {
+                    return format(parsedDate, 'yyyy-MM-dd');
+                }
+            } catch (e) {
+                // Continue to next format
+            }
         }
 
-        // 2. Try European format (DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY)
-        const euroMatch = cleanDate.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
-        if (euroMatch) {
-            return `${euroMatch[3]}-${euroMatch[2].padStart(2, '0')}-${euroMatch[1].padStart(2, '0')}`;
+        // Try one more time specifically for short years if still failing
+        const shortYearFormats = ['dd/MM/yy', 'dd.MM.yy', 'dd-MM-yy', 'yy-MM-dd'];
+        for (const fmt of shortYearFormats) {
+            try {
+                const parsedDate = parse(cleanDate, fmt, referenceDate);
+                if (isValid(parsedDate)) {
+                    return format(parsedDate, 'yyyy-MM-dd');
+                }
+            } catch (e) { }
         }
 
-        // 3. Try European short year (DD/MM/YY) - assume 20xx
-        const euroShortMatch = cleanDate.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2})$/);
-        if (euroShortMatch) {
-            const year = parseInt(euroShortMatch[3]) > 70 ? `19${euroShortMatch[3]}` : `20${euroShortMatch[3]}`;
-            return `${year}-${euroShortMatch[2].padStart(2, '0')}-${euroShortMatch[1].padStart(2, '0')}`;
-        }
-
-        // 4. Try JS Date parsing as fallback
+        // Final fallback to native Date parsing
         try {
             const d = new Date(cleanDate);
             if (!isNaN(d.getTime())) {
-                return d.toISOString().split('T')[0];
+                return format(d, 'yyyy-MM-dd');
             }
         } catch (e) {
-            // Fallback to original
+            // Keep original if everything fails
         }
 
         return dateStr;
