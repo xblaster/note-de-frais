@@ -37,7 +37,7 @@ export default function ExpenseEditPage() {
         fetchExpense();
     }, [id]);
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (formData: FormData, status?: 'DRAFT' | 'SUBMITTED') => {
         setLoading(true);
         setError(null);
 
@@ -45,16 +45,12 @@ export default function ExpenseEditPage() {
             const userId = localStorage.getItem('userId');
             if (!userId) throw new Error('Utilisateur non connecté');
 
-            // Convert FormData to JSON for PATCH (since we are not supporting multipart PATCH yet by backend design)
-            // But wait, if they uploaded a NEW receipt, we might need multipart.
-            // Actually, the backend PATCH implementation I wrote expects JSON and doesn't handle files.
-            // Let's check how to handle file update if needed.
-
             const jsonData: any = {
                 userId,
                 amount: parseFloat(formData.get('amount') as string),
                 date: formData.get('date') as string,
                 vendor: formData.get('vendor') as string,
+                status: status,
             };
 
             await apiClient.patch(`/expenses/${id}`, jsonData);

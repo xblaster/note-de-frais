@@ -12,7 +12,7 @@ interface ExpenseFormProps {
         vendor: string;
         screenshotUrl?: string;
     };
-    onSubmit: (data: FormData) => Promise<void>;
+    onSubmit: (data: FormData, status?: 'DRAFT' | 'SUBMITTED') => Promise<void>;
     onCancel: () => void;
     submitLabel?: string;
     loading?: boolean;
@@ -71,8 +71,7 @@ export default function ExpenseForm({
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleAction = async (status: 'DRAFT' | 'SUBMITTED') => {
         if (!formData.amount || !formData.date) {
             setError('Le montant et la date sont requis.');
             return;
@@ -88,7 +87,13 @@ export default function ExpenseForm({
             data.append('receipt', receiptFile);
         }
 
-        await onSubmit(data);
+        await onSubmit(data, status);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        // Default to SUBMITTED when pressing enter on the form
+        await handleAction('SUBMITTED');
     };
 
     return (
@@ -200,7 +205,7 @@ export default function ExpenseForm({
                         </div>
                     )}
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-4">
                         <button
                             type="button"
                             onClick={onCancel}
@@ -209,16 +214,33 @@ export default function ExpenseForm({
                             Annuler
                         </button>
                         <button
-                            type="submit"
+                            type="button"
                             disabled={loading || isAnalyzing}
-                            className="flex-1 px-6 py-3 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-primary-foreground font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95"
+                            onClick={() => handleAction('DRAFT')}
+                            className="flex-1 px-6 py-3 border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-medium rounded-xl transition-all flex items-center justify-center gap-2"
                         >
                             {loading ? (
                                 <RefreshCw className="w-5 h-5 animate-spin" />
                             ) : (
-                                <Send className="w-5 h-5" />
+                                <span className="flex items-center gap-2">
+                                    <RefreshCw className="w-4 h-4" /> Brouillon
+                                </span>
                             )}
-                            <span>{submitLabel}</span>
+                        </button>
+                        <button
+                            type="button"
+                            disabled={loading || isAnalyzing}
+                            onClick={() => handleAction('SUBMITTED')}
+                            className="flex-[1.5] px-6 py-3 bg-primary hover:bg-primary-hover disabled:bg-primary/50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95"
+                        >
+                            {loading ? (
+                                <RefreshCw className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <>
+                                    <Send className="w-5 h-5" />
+                                    <span>{submitLabel}</span>
+                                </>
+                            )}
                         </button>
                     </div>
                 </form>

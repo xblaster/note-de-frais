@@ -40,7 +40,14 @@ export class ExpensesService {
     vendor?: string;
     userId: string;
     screenshotUrl?: string;
+    status?: 'DRAFT' | 'SUBMITTED';
   }) {
+    // Validate status if provided
+    const targetStatus = data.status || 'DRAFT';
+    if (targetStatus !== 'DRAFT' && targetStatus !== 'SUBMITTED') {
+      throw new Error('Only DRAFT or SUBMITTED status can be set during creation');
+    }
+
     return this.prisma.expense.create({
       data: {
         amount: data.amount,
@@ -48,7 +55,7 @@ export class ExpensesService {
         vendor: data.vendor,
         userId: data.userId,
         screenshotUrl: data.screenshotUrl,
-        status: 'DRAFT',
+        status: targetStatus,
       },
     });
   }
@@ -62,6 +69,7 @@ export class ExpensesService {
       vendor?: string;
       description?: string;
       category?: string;
+      status?: 'DRAFT' | 'SUBMITTED';
     },
   ) {
     const expense = await this.prisma.expense.findUnique({
@@ -74,6 +82,11 @@ export class ExpensesService {
 
     if (expense.status !== 'DRAFT' && expense.status !== 'REVISION_REQUESTED') {
       throw new Error('Only expenses in DRAFT or REVISION_REQUESTED status can be updated');
+    }
+
+    // Validate status if provided
+    if (data.status && data.status !== 'DRAFT' && data.status !== 'SUBMITTED') {
+      throw new Error('Only DRAFT or SUBMITTED status can be set during update');
     }
 
     return this.prisma.expense.update({

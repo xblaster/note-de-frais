@@ -93,7 +93,7 @@ export class ExpensesController {
   async create(
     @UploadedFile() file: Express.Multer.File,
     @Body()
-    body: { amount: string; date: string; vendor?: string; userId: string },
+    body: { amount: string; date: string; vendor?: string; userId: string; status?: 'DRAFT' | 'SUBMITTED' },
   ) {
     if (!body.userId) {
       throw new UnauthorizedException('User ID is required');
@@ -107,6 +107,7 @@ export class ExpensesController {
       vendor: body.vendor,
       userId: body.userId,
       screenshotUrl,
+      status: body.status,
     });
   }
 
@@ -148,6 +149,7 @@ export class ExpensesController {
       vendor?: string;
       description?: string;
       category?: string;
+      status?: 'DRAFT' | 'SUBMITTED';
     },
   ) {
     if (!body.userId) {

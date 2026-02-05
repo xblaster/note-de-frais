@@ -9,7 +9,7 @@ export default function CreateExpensePage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (formData: FormData) => {
+    const handleSubmit = async (formData: FormData, status?: 'DRAFT' | 'SUBMITTED') => {
         setLoading(true);
         setError(null);
 
@@ -17,8 +17,11 @@ export default function CreateExpensePage() {
             const userId = localStorage.getItem('userId');
             if (!userId) throw new Error('Utilisateur non connecté');
 
-            // Add userId to formData
+            // Add userId and status to formData
             formData.append('userId', userId);
+            if (status) {
+                formData.append('status', status);
+            }
 
             await apiClient.post('/expenses', formData, {
                 headers: {
