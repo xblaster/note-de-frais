@@ -12,6 +12,6 @@
 - [x] Modify `ExpenseEditPage` to use the new submission flow <!-- id: 6 -->
 
 ## Verification
-- [ ] Test manual creation as Draft <!-- id: 7 -->
-- [ ] Test manual creation as Submitted <!-- id: 8 -->
-- [ ] Test editing a Draft and promoting it to Submitted <!-- id: 9 -->
+- [x] Test manual creation as Draft <!-- id: 7 -->
+- [x] Test manual creation as Submitted <!-- id: 8 -->
+- [x] Test editing a Draft and promoting it to Submitted <!-- id: 9 -->

@@ -70,6 +70,32 @@ describe('ExpensesService', () => {
             expect(prismaMock.expense.create).toHaveBeenCalled();
         });
 
+        it('should create an expense with SUBMITTED status when specified', async () => {
+            const expenseData = {
+                amount: 100,
+                date: '2024-02-04',
+                userId: 'user-1',
+                vendor: 'Test Vendor',
+                status: 'SUBMITTED' as const,
+            };
+
+            const mockCreatedExpense = {
+                id: 'new-id',
+                ...expenseData,
+                date: new Date(expenseData.date),
+                status: 'SUBMITTED',
+            };
+
+            prismaMock.expense.create.mockResolvedValue(mockCreatedExpense as any);
+
+            const result = await service.create(expenseData);
+
+            expect(result.status).toBe('SUBMITTED');
+            expect(prismaMock.expense.create).toHaveBeenCalledWith({
+                data: expect.objectContaining({ status: 'SUBMITTED' }),
+            });
+        });
+
         it('should throw an error if status is not DRAFT or SUBMITTED', async () => {
             const expenseData = {
                 amount: 100,
@@ -257,6 +283,24 @@ describe('ExpensesService', () => {
             const result = await service.update(expenseId, userId, { amount: 150 });
 
             expect(result.amount).toBe(150);
+        });
+
+        it('should promote a DRAFT expense to SUBMITTED during update', async () => {
+            const expenseId = 'exp-1';
+            const userId = 'user-1';
+            const mockExpense = { id: expenseId, userId, status: 'DRAFT', amount: 100 };
+            const updatedExpense = { ...mockExpense, status: 'SUBMITTED' };
+
+            prismaMock.expense.findUnique.mockResolvedValue(mockExpense as any);
+            prismaMock.expense.update.mockResolvedValue(updatedExpense as any);
+
+            const result = await service.update(expenseId, userId, { status: 'SUBMITTED' });
+
+            expect(result.status).toBe('SUBMITTED');
+            expect(prismaMock.expense.update).toHaveBeenCalledWith({
+                where: { id: expenseId },
+                data: expect.objectContaining({ status: 'SUBMITTED' }),
+            });
         });
 
         it('should update a revision_requested expense', async () => {

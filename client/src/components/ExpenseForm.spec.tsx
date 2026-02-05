@@ -103,7 +103,7 @@ describe('ExpenseForm', () => {
     const submitButton = screen.getByText('Soumettre');
     fireEvent.click(submitButton);
 
-    expect(mockOnSubmit).toHaveBeenCalled();
+    expect(mockOnSubmit).toHaveBeenCalledWith(expect.any(FormData), 'SUBMITTED');
   });
 
   it('should populate all fields when initialData is provided', () => {
@@ -157,7 +157,7 @@ describe('ExpenseForm', () => {
     const draftButton = screen.getByText(/Brouillon/i);
     fireEvent.click(draftButton);
 
-    expect(mockOnSubmit).toHaveBeenCalled();
+    expect(mockOnSubmit).toHaveBeenCalledWith(expect.any(FormData), 'DRAFT');
   });
 
   it('should accept loading prop', () => {
@@ -246,7 +246,7 @@ describe('ExpenseForm', () => {
     const submitButton = screen.getByText('Soumettre');
     fireEvent.click(submitButton);
 
-    expect(mockOnSubmit).toHaveBeenCalled();
+    expect(mockOnSubmit).toHaveBeenCalledWith(expect.any(FormData), 'SUBMITTED');
   });
 
   it('should set default date to today', () => {
@@ -280,6 +280,6 @@ describe('ExpenseForm', () => {
     const form = screen.getByLabelText(/Montant/i).closest('form');
     fireEvent.submit(form!);
 
-    expect(mockOnSubmit).toHaveBeenCalled();
+    expect(mockOnSubmit).toHaveBeenCalledWith(expect.any(FormData), 'SUBMITTED');
   });
 });
