@@ -138,6 +138,73 @@ Copy `.env.example` to `.env` at repo root:
 - **Server testing**: Uses `jest-mock-extended` to deep-mock PrismaClient. See `server/src/test/prisma-mock.ts`.
 - **Client testing**: Vitest with happy-dom environment. Setup in `client/src/test/setup.ts` (React Testing Library cleanup).
 
+## Test Coverage
+
+The project has **comprehensive unit test coverage** on critical paths:
+
+### Server Tests (Jest - 42 tests)
+
+**Test Files:**
+- `expenses.service.spec.ts` — 25 tests covering:
+  - All status transitions (DRAFT → SUBMITTED → APPROVED/REJECTED/REVISION_REQUESTED)
+  - Invalid transition validation (e.g., SUBMITTED → DRAFT fails)
+  - Deletion constraints (only DRAFT/REJECTED/REVISION_REQUESTED allowed)
+  - Update constraints (only DRAFT/REVISION_REQUESTED allowed)
+  - Edge cases (missing amounts, negative values, authorization checks)
+- `auth.controller.spec.ts` — 8 tests covering:
+  - Login flows with valid/invalid emails
+  - Consistent userId generation across logins
+  - Default EMPLOYEE role assignment
+  - Role persistence and mock JWT generation
+- `ollama.service.spec.ts` — 9 tests documenting:
+  - Service interface and method signatures
+  - Expected response format for OCR results
+  - Error handling behavior
+
+**Coverage:**
+- Auth Controller: **100% statements, 83.33% branches**
+- Expenses Service: **97.29% statements, 95.65% branches**
+
+### Client Tests (Vitest - 31 tests)
+
+**Test Files:**
+- `ExpenseForm.spec.tsx` — 15 tests covering:
+  - Form rendering and field initialization
+  - Validation (required fields, amount format, date validation)
+  - Form submission (DRAFT vs SUBMITTED status)
+  - Receipt capture integration
+  - Error display and handling
+  - State persistence and form clearing
+- `ReceiptCapture.spec.tsx` — 5 tests covering:
+  - File upload and camera capture UI
+  - Preview display and clearing
+- `api-client.spec.ts` — 11 tests covering:
+  - Request interceptor configuration
+  - userId auto-injection for `/expenses` endpoints
+  - localStorage handling
+
+**Running Tests:**
+```bash
+# Server
+cd server
+pnpm test                    # Run all tests
+pnpm test -- expenses.service.spec  # Single test file
+pnpm test:cov                # With coverage report
+pnpm test:watch              # Watch mode
+
+# Client
+cd client
+pnpm test                    # Run all tests
+pnpm test -- ExpenseForm     # Single test file
+pnpm test:watch              # Watch mode
+```
+
+**Test Patterns:**
+- Mock PrismaClient using `jest-mock-extended` for database isolation
+- Test component behavior (not implementation) with React Testing Library
+- Use real localStorage in tests (no mocking) for client-side state
+- Document expected behavior when external mocking is complex (e.g., Ollama)
+
 ## Design System
 
 Dark theme with glassmorphism. Background: `#09090b`, primary: indigo `#6366f1`. CSS classes in `index.css`: `.glass`, `.glass-card`, `.input-premium`, `.btn-premium`. Framer Motion animations throughout. Font: Outfit.

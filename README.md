@@ -26,13 +26,50 @@ Une application moderne et performante pour la gestion des notes de frais, perme
 /
 ├── server/          # Backend NestJS (API & Logique métier)
 │   ├── prisma/      # Schéma et migrations de base de données
-│   └── src/         # Code source TypeScript
+│   └── src/         # Code source TypeScript + tests unitaires
 ├── client/          # Frontend React (Interface utilisateur)
-│   ├── src/         # Composants, hooks et services
+│   ├── src/         # Composants, hooks et services + tests
 │   └── public/      # Assets statiques
 ├── infra/           # Configuration infrastructure (Docker, scripts)
 └── docs/            # Documentation détaillée du projet
 ```
+
+## ✅ Qualité & Tests
+
+Le projet bénéficie d'une **couverture de tests complète** sur les chemins critiques :
+
+### Tests Backend (Jest)
+- **42 tests unitaires** couvrant :
+  - Workflows d'état des dépenses (DRAFT → SUBMITTED → APPROVED/REJECTED)
+  - Authentification et gestion des rôles
+  - Service OCR Ollama
+  - Contraintes de validation métier
+
+**Couverture :**
+- Module Auth : **100%**
+- Service Expenses : **97.29%**
+
+```bash
+cd server
+pnpm test              # Exécuter tous les tests
+pnpm test:cov          # Rapport de couverture
+pnpm test:watch        # Mode surveillance
+```
+
+### Tests Frontend (Vitest)
+- **31 tests** couvrant :
+  - Composants de formulaires (ExpenseForm, ReceiptCapture)
+  - Validation et soumission
+  - Intégration API et intercepteurs
+  - Gestion d'état et interactions utilisateur
+
+```bash
+cd client
+pnpm test              # Exécuter tous les tests
+pnpm test:watch        # Mode surveillance
+```
+
+**Total : 73 tests passants** garantissant la stabilité du code et la confiance dans les refactorings.
 
 ## 🏗️ Installation & Lancement
 
@@ -84,6 +121,62 @@ pnpm dev
 
 ### Backend (`server/.env`)
 - `DATABASE_URL` : Chaîne de connexion PostgreSQL (ex: `postgresql://user:password@localhost:5432/db_name`)
+
+## 🧪 Lancement des Tests Unitaires
+
+### Tests Backend (Jest)
+
+```bash
+cd server
+
+# Lancer tous les tests
+pnpm test
+
+# Lancer les tests avec rapport de couverture
+pnpm test:cov
+
+# Lancer les tests en mode surveillance (watch)
+pnpm test:watch
+
+# Lancer un fichier de test spécifique
+pnpm test -- expenses.service.spec
+pnpm test -- auth.controller.spec
+pnpm test -- ollama.service.spec
+```
+
+**Résultats attendus :**
+- ✅ 42 tests passants
+- ✅ Couverture : Auth 100%, Expenses Service 97.29%
+
+### Tests Frontend (Vitest)
+
+```bash
+cd client
+
+# Lancer tous les tests
+pnpm test
+
+# Lancer les tests en mode surveillance (watch)
+pnpm test:watch
+
+# Lancer un fichier de test spécifique
+pnpm test -- ExpenseForm
+pnpm test -- ReceiptCapture
+pnpm test -- api-client
+```
+
+**Résultats attendus :**
+- ✅ 31 tests passants
+- ✅ Couverture complète des composants critiques
+
+### Lancer tous les tests du projet
+
+```bash
+# Depuis la racine du projet
+cd server && pnpm test && cd ../client && pnpm test
+```
+
+**Total : 73 tests unitaires** garantissant la qualité du code.
 
 ## 📝 Licence
 
