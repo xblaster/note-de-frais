@@ -11,6 +11,21 @@ export class ExpensesService {
     });
   }
 
+  async findAllGlobal() {
+    return this.prisma.expense.findMany({
+      include: {
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+  }
+
   async remove(id: string, userId: string) {
     const expense = await this.prisma.expense.findUnique({
       where: { id },

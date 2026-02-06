@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   Plus,
   Receipt,
@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   X,
   Trash2,
+  ShieldAlert,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
@@ -255,6 +256,7 @@ export default function ExpenseListPage() {
 
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
+  const userRole = localStorage.getItem('userRole');
 
   useEffect(() => {
     const fetchExpenses = async (): Promise<void> => {
@@ -390,6 +392,16 @@ export default function ExpenseListPage() {
             </div>
 
             <div className="flex items-center gap-4 flex-shrink-0">
+              {userRole === 'ADMIN' && (
+                <Link
+                  to="/admin"
+                  className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-all flex items-center gap-2"
+                  title="Administration"
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                  <span className="text-sm font-bold hidden lg:block">Admin</span>
+                </Link>
+              )}
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-medium text-foreground">{userEmail}</p>

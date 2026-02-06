@@ -11,6 +11,7 @@ import {
   Param,
   BadRequestException,
   Patch,
+  UseGuards,
 } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -18,6 +19,10 @@ import { diskStorage } from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { extname } from 'path';
 import { OllamaService } from '../ollama/ollama.service';
+import { MockAuthGuard } from '../auth/guards/mock-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('expenses')
 export class ExpensesController {
@@ -25,6 +30,13 @@ export class ExpensesController {
     private readonly expensesService: ExpensesService,
     private readonly ollamaService: OllamaService,
   ) { }
+
+  @Get('all')
+  @UseGuards(MockAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  async findAllGlobal() {
+    return this.expensesService.findAllGlobal();
+  }
 
   @Post('analyze')
   @UseInterceptors(

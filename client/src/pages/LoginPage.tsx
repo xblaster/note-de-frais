@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Loader2, Receipt } from 'lucide-react';
+import { Mail, Loader2, Receipt, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiClient from '../api/api-client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('EMPLOYEE');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -23,9 +24,11 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await apiClient.post('/auth/login', { email });
+      const response = await apiClient.post('/auth/login', { email, role });
       localStorage.setItem('userId', response.data.id);
       localStorage.setItem('userEmail', response.data.email);
+      localStorage.setItem('userRole', response.data.role);
+      localStorage.setItem('accessToken', response.data.accessToken);
       navigate('/dashboard');
     } catch (error) {
       console.error('Login failed', error);
@@ -80,6 +83,31 @@ export default function LoginPage() {
                   placeholder="jean.dupont@entreprise.fr"
                   disabled={loading}
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-foreground"
+              >
+                Rôle (Mock)
+              </label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <select
+                  id="role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className="w-full bg-input border border-border rounded-lg pl-11 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-transparent transition-all appearance-none"
+                  disabled={loading}
+                >
+                  <option value="EMPLOYEE">Employé</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="ADMIN">Administrateur</option>
+                </select>
               </div>
             </div>
 

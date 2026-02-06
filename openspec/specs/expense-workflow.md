@@ -4,6 +4,13 @@
 - Users can save an expense as a draft (`DRAFT`) or submit it (`SUBMITTED`) at any time (creation or editing).
 - The transition from draft to submitted should be seamless.
 
+### Requirement: Admin Workflow Oversight
+The system SHALL allow ADMIN users to view and potentially modify the status of any expense in the system.
+
+#### Scenario: Admin views a submitted expense
+- **WHEN** an admin views an expense in SUBMITTED status
+- **THEN** they see all details and have the option to trigger actions defined for validators (APPROVE/REJECT)
+
 ## Backend Changes
 
 ### Expenses Service

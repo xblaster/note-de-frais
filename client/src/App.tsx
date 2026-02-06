@@ -3,20 +3,8 @@ import LoginPage from './pages/LoginPage';
 import ExpenseListPage from './pages/ExpenseListPage';
 import CreateExpensePage from './pages/CreateExpensePage';
 import ExpenseEditPage from './pages/ExpenseEditPage';
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
-function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const userId = localStorage.getItem('userId');
-
-  if (!userId) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
+import AdminDashboardPage from './pages/AdminDashboardPage';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   const userId = localStorage.getItem('userId');
@@ -29,10 +17,22 @@ export default function App() {
           element={userId ? <Navigate to="/dashboard" replace /> : <LoginPage />}
         />
         <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+        <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
               <ExpenseListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <AdminDashboardPage />
             </ProtectedRoute>
           }
         />
