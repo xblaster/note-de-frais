@@ -12,6 +12,26 @@ Une application moderne et performante pour la gestion des notes de frais, perme
   - Cycle de vie : `DRAFT` -> `SUBMITTED` -> `APPROVED`/`REJECTED`.
 - **Interface Premium** : Design moderne avec micro-animations, mode sombre et composants Shadcn/UI.
 
+## 📸 Aperçu
+
+<div align="center">
+  <h3>Tableau de Bord</h3>
+  <img src="docs/assets/screenshots/dashboard.png" width="800px" alt="Tableau de Bord App" />
+  
+  <br />
+  
+  <div style="display: flex; gap: 10px; justify-content: center;">
+    <div>
+      <h4>Connexion</h4>
+      <img src="docs/assets/screenshots/login.png" width="390px" alt="Page de Connexion" />
+    </div>
+    <div>
+      <h4>Nouvelle Dépense</h4>
+      <img src="docs/assets/screenshots/form.png" width="390px" alt="Formulaire de Dépense" />
+    </div>
+  </div>
+</div>
+
 ## 🛠️ Stack Technique
 
 - **Backend** : [NestJS](https://nestjs.com/) (TypeScript) + [Prisma ORM](https://www.prisma.io/).
